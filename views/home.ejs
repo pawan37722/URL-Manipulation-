@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+    <head>
+        <title>URL Shortener</title>
+        <script>
+            const BASE_URL = "<%= baseUrl %>";
+
+            function copy(a){
+                navigator.clipboard.writeText(a)
+                    .then(() => alert("Text copied!"))
+                    .catch(() => alert("Failed to copy text."));
+            }
+
+            async function add() {
+                try {
+                    const res = await fetch(BASE_URL + "/crateshorturl", { method: "POST" });
+                    const data = await res.json();
+                    document.getElementById("autoid").innerText = data.shorturl;
+                } catch(err) {
+                    console.error("Error generating short URL:", err);
+                }
+            }
+
+            async function acton() {
+                const value = document.querySelector('input[name="mode"]:checked').value;
+                if (value == "auto") {
+                    document.getElementById("automaticdiv").hidden = false;
+                    document.getElementById("manualdiv").hidden = true;
+                    document.getElementById("aa3").style.color = "white";
+                    document.getElementById("aa2").style.color = "red";
+                    document.getElementById("aa1").style.color = "white";
+                    add();
+                } else if (value == "manual") {
+                    document.getElementById("manualdiv").hidden = false;
+                    document.getElementById("automaticdiv").hidden = true;
+                    document.getElementById("aa3").style.color = "white";
+                    document.getElementById("aa2").style.color = "white";
+                    document.getElementById("aa1").style.color = "red";
+                } else {
+                    document.getElementById("automaticdiv").hidden = true;
+                    document.getElementById("manualdiv").hidden = true;
+                    document.getElementById("aa3").style.color = "red";
+                    document.getElementById("aa2").style.color = "white";
+                    document.getElementById("aa1").style.color = "white";
+                }
+            }
+
+            async function checkid() {
+                const text = document.getElementById("manualshortid").value;
+                const ele = document.getElementById("duplicatemessage");
+                ele.hidden = false;
+
+                if (text == "") {
+                    ele.style.color = "red";
+                    ele.innerText = "ID must not be empty";
+                    return;
+                }
+
+                try {
+                    const res = await fetch(BASE_URL + "/checkurl", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ shorturl: text })
+                    });
+
+                    const data = await res.json();
+                    console.log("checkurl response:", data);
+
+                    if (data.status == 1) {
+                        ele.innerText = "avalible";
+                        ele.style.color = "green";
+                    } else {
+                        ele.innerText = "not avalible";
+                        ele.style.color = "red";
+                    }
+                } catch(err) {
+                    console.error("checkurl error:", err);
+                    ele.innerText = "something went wrong";
+                    ele.style.color = "red";
+                }
+            }
+
+            async function submitfinal() {
+                const ourl = document.getElementById("url").value;
+                if (ourl == "") {
+                    document.getElementById("usnbe").hidden = false;
+                    return;
+                }
+                document.getElementById("usnbe").hidden = true;
+
+                let durl;
+                const value = document.querySelector('input[name="mode"]:checked').value;
+
+                if (value == "auto") {
+                    durl = document.getElementById("autoid").innerText;
+                } else if (value == "manual") {
+                    if (document.getElementById("duplicatemessage").innerText == "avalible") {
+                        durl = document.getElementById("manualshortid").value;
+                    } else {
+                        document.getElementById("submitmessage").innerText = "Choose a unique ID first";
+                        return;
+                    }
+                }
+
+                try {
+                    const res = await fetch(BASE_URL + "/create", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ redirecturl: ourl, shorturl: durl })
+                    });
+                    const data = await res.json();
+
+                    document.getElementById("submitmessage").innerText = data.m;
+
+                    if (data.status == 1) {
+                        document.getElementById("showth").hidden = false;
+                        document.getElementById("submitmessage").style.color = "green";
+                        const aorignal = document.getElementById("aorignal");
+                        aorignal.innerText = "http://" + data.redirecturl;
+                        aorignal.href = "http://" + data.redirecturl;
+                        const aduplicate = document.getElementById("aduplicate");
+                        aduplicate.innerText = BASE_URL + "/" + data.shorturl;
+                        aduplicate.href = BASE_URL + "/" + data.shorturl;
+                    } else {
+                        document.getElementById("showth").hidden = true;
+                        document.getElementById("submitmessage").style.color = "red";
+                    }
+                } catch(err) {
+                    console.error("submit error:", err);
+                    document.getElementById("submitmessage").innerText = "Something went wrong, try again";
+                    document.getElementById("submitmessage").style.color = "red";
+                }
+            }
+        </script>
+    </head>
+    <body style="font-size: 200%; background:rgb(61, 49, 49); color: rgb(235, 145, 145); text-align: center; padding: 20px;">
+        <div>
+            <form>
+                <label>Enter your original URL</label>
+                <input id="url" type="text" name="redirecturl" placeholder="http://abc####.xyz"
+                    style="width: 750px; height:35px; font-size: 1em; background:rgb(237, 202, 202);">
+                <p hidden id="usnbe" style="color:rgb(245, 5, 5);">URL should not be empty</p>
+                <br>
+                <label>Choose short URL method</label>
+                <label for="a1" id="aa1" style="color:rgb(250, 255, 255);">
+                    <input style="transform: scale(1.5)" id="a1" type="radio" name="mode" value="manual" onclick="acton()">
+                    Generate manually
+                </label>
+                <label for="a2" id="aa2" style="color:rgb(255, 255, 255);">
+                    <input style="transform: scale(1.5);" id="a2" type="radio" name="mode" value="auto" onclick="acton()">
+                    Generate automatically
+                </label>
+                <label for="a3" id="aa3" style="color:rgb(251, 13, 5);">
+                    <input style="transform: scale(1.5)" id="a3" type="radio" name="mode" value="default" onclick="acton()" checked>
+                    Get default
+                </label>
+
+                <div id="automaticdiv" hidden>
+                    <label>Short URL</label>
+                    <span style="white-space: pre;">     </span>
+                    <label style="color:rgb(251, 13, 5);"><%= baseUrl %>/</label>
+                    <label style="color:rgb(251, 13, 5);" id="autoid"></label>
+                    <span style="white-space: pre;">     </span>
+                    <button type="button" onclick="add()" style="height:35px; font-size: 1em; background:rgb(247, 131, 131)">Choose different</button>
+                </div>
+
+                <div id="manualdiv" hidden>
+                    <label for="a3"><%= baseUrl %>/ 
+                        <input id="manualshortid" type="text" name="shorturl"
+                            style="width: 750px; height:35px; font-size: 1em; background:rgb(237, 202, 202)"
+                            placeholder="***abc123***">
+                    </label>
+                    <br>
+                    <label id="duplicatemessage" hidden></label>
+                    <br>
+                    <button style="height:35px; font-size: 1em; background:rgb(247, 131, 131)" id="checkbt" onclick="checkid()" type="button">
+                        Check Availability
+                    </button>
+                </div>
+
+                <br>
+                <button type="button" onclick="submitfinal()" style="height:35px; font-size: 1em; background:rgb(247, 131, 131)">Submit</button>
+            </form>
+
+            <h1 id="submitmessage" style="color:rgb(245, 5, 5);"></h1>
+
+            <div id="showth" hidden>
+                <label style="color:rgb(5, 245, 113);">Short URL</label>
+                <span style="white-space: pre;">     </span>
+                <a target="_blank" style="color:rgb(245, 5, 5);" id="aduplicate"></a>
+                <span style="white-space: pre;">     </span>
+                <button onclick="copy(document.getElementById('aduplicate').innerText)"
+                    style="height:35px; font-size: 1em; background:rgb(130, 132, 246);">Copy</button>
+                <br>
+                <label style="color:rgb(5, 245, 113);">Original URL</label>
+                <span style="white-space: pre;">     </span>
+                <a target="_blank" style="color:rgb(245, 5, 5);" id="aorignal"></a>
+                <span style="white-space: pre;">     </span>
+                <button onclick="copy(document.getElementById('aorignal').innerText)"
+                    style="height:35px; font-size: 1em; background:rgb(130, 132, 246);">Copy</button>
+            </div>
+
+            <br><br><br><br><br>
+            <a target="_blank" href="<%= baseUrl %>/getinfo" style="color:rgb(245, 5, 5);">Check all short URLs</a>
+        </div>
+    </body>
+</html>
