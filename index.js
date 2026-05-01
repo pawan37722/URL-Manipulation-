@@ -8,11 +8,6 @@ require("./connection");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-if (!process.env.BASE_URL) {
-  console.error("ERROR: BASE_URL is not set in your .env file!");
-  process.exit(1);
-}
-
 const BASE_URL = process.env.BASE_URL;
 
 app.use(express.json());

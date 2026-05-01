@@ -3,11 +3,12 @@ const { nanoid } = require("nanoid");
 const dns = require("dns").promises;
 require("dotenv").config();
 
+
 if (!process.env.BASE_URL) {
-  console.error("ERROR: BASE_URL is not set in your .env file!");
   process.exit(1);
 }
 const BASE_URL = process.env.BASE_URL;
+
 
 async function isValidUrl(inputUrl) {
   try {
@@ -28,11 +29,13 @@ async function isValidUrl(inputUrl) {
   }
 }
 
+
 function stripProtocol(url) {
   if (url.startsWith("https://")) return url.slice(8);
   if (url.startsWith("http://")) return url.slice(7);
   return url;
 }
+
 
 async function generateUniqueShortCode() {
   let isUnique = false;
@@ -45,15 +48,19 @@ async function generateUniqueShortCode() {
   return shortCode;
 }
 
+
 async function createShortUrl(req, res) {
   try {
     const { redirecturl: redirectUrl, shorturl: customShortUrl } = req.body;
+
 
     if (!redirectUrl) {
       return res.json({ status: 0, m: "Original URL is required" });
     }
 
+
     let shortCode = customShortUrl;
+
 
     if (!shortCode) {
       shortCode = await generateUniqueShortCode();
@@ -64,14 +71,18 @@ async function createShortUrl(req, res) {
       }
     }
 
+
     const cleanRedirectUrl = stripProtocol(redirectUrl);
+
 
     const isValid = await isValidUrl(cleanRedirectUrl);
     if (!isValid) {
       return res.json({ status: 0, m: "Invalid or unreachable URL" });
     }
 
+
     await UrlModel.create({ shortUrl: shortCode, redirectUrl: cleanRedirectUrl });
+
 
     return res.json({
       status: 1,
@@ -80,10 +91,10 @@ async function createShortUrl(req, res) {
       redirecturl: cleanRedirectUrl,
     });
   } catch (err) {
-    console.error("DB error creating short URL:", err);
     return res.json({ status: 0, m: "Database error, could not create short URL" });
   }
 }
+
 
 async function redirectToUrl(req, res) {
   try {
@@ -94,14 +105,15 @@ async function redirectToUrl(req, res) {
     }
     return res.redirect("http://" + urlRecord.redirect_url);
   } catch (err) {
-    console.error("Error redirecting:", err);
     return res.status(500).send("Server error");
   }
 }
 
+
 async function getAllUrlsInfo(req, res) {
   try {
     const allUrls = await UrlModel.findAllUrls();
+
 
     const tableHeading = `
       <table border="1" style="border-collapse: collapse; width: 100%; font-family: sans-serif; text-align: left;">
@@ -112,6 +124,7 @@ async function getAllUrlsInfo(req, res) {
           <th>Visit Count</th>
           <th>Action</th>
         </tr>`;
+
 
     const tableRows = allUrls.map((record) => `
       <tr>
@@ -125,12 +138,13 @@ async function getAllUrlsInfo(req, res) {
         <td><a href="${BASE_URL}/delete/${record.short_url}">Delete</a></td>
       </tr>`).join("");
 
+
     return res.send(tableHeading + tableRows + "</table>");
   } catch (err) {
-    console.error("Error fetching all URLs:", err);
     return res.status(500).send("Database error");
   }
 }
+
 
 async function checkShortUrlAvailability(req, res) {
   try {
@@ -141,21 +155,21 @@ async function checkShortUrlAvailability(req, res) {
     const existing = await UrlModel.findByShortUrl(shortCode);
     return res.json({ status: existing ? 0 : 1 });
   } catch (err) {
-    console.error("Error checking availability:", err);
     return res.json({ status: 0 });
   }
 }
 
-// Route name kept as "crateshorturl" to match the frontend fetch call
+
+
 async function generateShortCode(req, res) {
   try {
     const shortCode = await generateUniqueShortCode();
     return res.json({ status: 1, shorturl: shortCode });
   } catch (err) {
-    console.error("Error generating short code:", err);
     return res.json({ status: 0 });
   }
 }
+
 
 async function deleteShortUrl(req, res) {
   try {
@@ -163,10 +177,10 @@ async function deleteShortUrl(req, res) {
     await UrlModel.deleteByShortUrl(shortCode);
     return res.redirect(`${BASE_URL}/getinfo`);
   } catch (err) {
-    console.error("Error deleting:", err);
     return res.status(500).send("Could not delete");
   }
 }
+
 
 module.exports = {
   createShortUrl,
